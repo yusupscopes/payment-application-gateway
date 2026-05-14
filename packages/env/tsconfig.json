@@ -1,0 +1,3 @@
+{
+  "extends": "@payment-application-gateway/config/tsconfig.base.json"
+}
