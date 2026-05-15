@@ -70,7 +70,7 @@ export interface ChargePayload {
   currency: string;
   paymentMethod: string;
   description?: string;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, unknown>;
   customerId?: string;
 }
 

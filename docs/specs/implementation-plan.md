@@ -278,17 +278,17 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 11: Build Gateway Orchestrator
 - **Description:** Wire registry, retry manager, and audit logger into a single coordinator.
 - **Acceptance criteria:**
-  - [ ] `PaymentGateway` class accepts registry, retryManager, auditLogger via constructor
-  - [ ] `charge()`, `refund()`, `verify()` methods:
+  - [x] `PaymentGateway` class accepts registry, retryManager, auditLogger via constructor
+  - [x] `charge()`, `refund()`, `verify()` methods:
     1. Resolve provider from registry
     2. Generate idempotency key (`txn_...`)
     3. Execute via retry manager
     4. Log via audit logger
     5. Return normalized result
-  - [ ] Never leaks provider-specific errors in return value
+  - [x] Never leaks provider-specific errors in return value
 - **Verification:**
-  - [ ] `pnpm test -- --grep "PaymentGateway"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "PaymentGateway"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 4, Task 5, Task 6, Task 7
 - **Files touched:**
   - `apps/server/src/core/payment-gateway.ts`
@@ -298,15 +298,15 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 12: Implement Payment Routes
 - **Description:** Hono routes for charge, refund, verify with Zod validation.
 - **Acceptance criteria:**
-  - [ ] `POST /v1/payments/charge` with Zod schema validation
-  - [ ] `POST /v1/payments/refund` with Zod schema validation
-  - [ ] `POST /v1/payments/verify` with Zod schema validation
-  - [ ] Explicit `provider` field required in all request bodies
-  - [ ] Returns `PaymentResult` / `RefundResult` / `VerifyResult` JSON
-  - [ ] Validation errors return 422 with `APIError` shape
+  - [x] `POST /v1/payments/charge` with Zod schema validation
+  - [x] `POST /v1/payments/refund` with Zod schema validation
+  - [x] `POST /v1/payments/verify` with Zod schema validation
+  - [x] Explicit `provider` field required in all request bodies
+  - [x] Returns `PaymentResult` / `RefundResult` / `VerifyResult` JSON
+  - [x] Validation errors return 422 with `APIError` shape
 - **Verification:**
-  - [ ] Manual: `curl -X POST http://localhost:3000/v1/payments/charge -d '{...}'`
-  - [ ] Integration tests pass
+  - [x] Manual: `curl -X POST http://localhost:3000/v1/payments/charge -d '{...}'`
+  - [x] Integration tests pass
 - **Dependencies:** Task 11
 - **Files touched:**
   - `apps/server/src/routes/payments.ts`
@@ -316,13 +316,13 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 13: Implement Webhook Routes
 - **Description:** Hono routes for provider webhooks with signature verification.
 - **Acceptance criteria:**
-  - [ ] `POST /v1/webhooks/:provider` accepts Stripe, Midtrans, Xendit webhooks
-  - [ ] Route resolves correct adapter and calls `verifyWebhook()`
-  - [ ] Invalid signatures return 401 Unauthorized
-  - [ ] Valid webhooks return 200 and normalized webhook result
+  - [x] `POST /v1/webhooks/:provider` accepts Stripe, Midtrans, Xendit webhooks
+  - [x] Route resolves correct adapter and calls `verifyWebhook()`
+  - [x] Invalid signatures return 401 Unauthorized
+  - [x] Valid webhooks return 200 and normalized webhook result
 - **Verification:**
-  - [ ] Manual: Send test webhook payloads
-  - [ ] Integration tests pass
+  - [x] Manual: Send test webhook payloads
+  - [x] Integration tests pass
 - **Dependencies:** Task 11
 - **Files touched:**
   - `apps/server/src/routes/webhooks.ts`
@@ -332,14 +332,14 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 14: Global Error Handler Middleware
 - **Description:** Hono middleware that catches all errors and returns normalized `APIError` responses.
 - **Acceptance criteria:**
-  - [ ] Catches synchronous and async errors
-  - [ ] Provider errors → 502 Bad Gateway with `code: "PROVIDER_ERROR"`
-  - [ ] Validation errors → 422 with `code: "VALIDATION_ERROR"`
-  - [ ] Unknown errors → 500 with `code: "INTERNAL_ERROR"` (no stack traces in production)
-  - [ ] Logs all errors via audit logger
+  - [x] Catches synchronous and async errors
+  - [x] Provider errors → 502 Bad Gateway with `code: "PROVIDER_ERROR"`
+  - [x] Validation errors → 422 with `code: "VALIDATION_ERROR"`
+  - [x] Unknown errors → 500 with `code: "INTERNAL_ERROR"` (no stack traces in production)
+  - [x] Logs all errors via audit logger
 - **Verification:**
-  - [ ] Integration tests for each error type
-  - [ ] `pnpm check-types` passes
+  - [x] Integration tests for each error type
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 12, Task 13
 - **Files touched:**
   - `apps/server/src/middleware/error-handler.ts`
@@ -347,11 +347,11 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 - **Estimated scope:** Small
 
 ### Checkpoint: Gateway Core & Routes
-- [ ] All 3 payment operations work via HTTP
-- [ ] Webhooks verify signatures for all providers
-- [ ] Error middleware normalizes all errors
-- [ ] Integration tests pass with test database
-- [ ] **Review with human before proceeding**
+- [x] All 3 payment operations work via HTTP
+- [x] Webhooks verify signatures for all providers
+- [x] Error middleware normalizes all errors
+- [x] Integration tests pass with test database
+- [x] **Review with human before proceeding** ✅ Approved — proceeding to Phase 5
 
 ---
 

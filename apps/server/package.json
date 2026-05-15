@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.14.4",
+    "@hono/zod-validator": "^0.8.0",
     "@payment-application-gateway/db": "workspace:*",
     "@payment-application-gateway/env": "workspace:*",
     "dotenv": "catalog:",

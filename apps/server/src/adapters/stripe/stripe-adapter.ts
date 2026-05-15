@@ -29,7 +29,7 @@ export class StripeAdapter implements IPaymentProvider {
         currency: payload.currency.toLowerCase(),
         payment_method: payload.paymentMethod,
         description: payload.description,
-        metadata: payload.metadata,
+        metadata: payload.metadata as Record<string, string>,
         customer: payload.customerId,
         confirm: true,
         automatic_payment_methods: { enabled: true, allow_redirects: "never" },
