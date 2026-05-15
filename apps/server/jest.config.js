@@ -4,6 +4,9 @@ export default {
   extensionsToTreatAsEsm: [".ts"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^@payment-application-gateway/db$": "<rootDir>/tests/__mocks__/db.ts",
+    "^@payment-application-gateway/env/server$":
+      "<rootDir>/tests/__mocks__/env.ts",
   },
   transform: {
     "^.+\\.tsx?$": [
