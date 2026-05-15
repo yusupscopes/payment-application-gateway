@@ -191,14 +191,14 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 7: Create Adapter Stubs (All 3 Providers)
 - **Description:** Create placeholder adapter classes implementing `IPaymentProvider` for Stripe, Midtrans, Xendit.
 - **Acceptance criteria:**
-  - [ ] `StripeAdapter`, `MidtransAdapter`, `XenditAdapter` all implement `IPaymentProvider`
-  - [ ] Each has `readonly name` set to provider name
-  - [ ] Each method throws `NotImplementedError` (placeholder)
-  - [ ] Constructors accept provider-specific config (API keys)
-  - [ ] Contract tests verify all 3 adapters implement the interface
+  - [x] `StripeAdapter`, `MidtransAdapter`, `XenditAdapter` all implement `IPaymentProvider`
+  - [x] Each has `readonly name` set to provider name
+  - [x] Each method throws `NotImplementedError` (placeholder)
+  - [x] Constructors accept provider-specific config (API keys)
+  - [x] Contract tests verify all 3 adapters implement the interface
 - **Verification:**
-  - [ ] `pnpm test -- --grep "Adapter Contract"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "Adapter Contract"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 3
 - **Files touched:**
   - `apps/server/src/adapters/stripe/stripe-adapter.ts`
@@ -212,15 +212,15 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 8: Implement Stripe Adapter
 - **Description:** Full implementation of Stripe charge, refund, verify + webhook verification.
 - **Acceptance criteria:**
-  - [ ] `charge()` creates Stripe payment intent, returns `PaymentResult`
-  - [ ] `refund()` creates Stripe refund, returns `RefundResult`
-  - [ ] `verify()` retrieves payment intent status, returns `VerifyResult`
-  - [ ] `verifyWebhook()` validates Stripe signature via HMAC
-  - [ ] Error normalization maps Stripe errors to `PaymentErrorCode`
-  - [ ] Unit tests with mocked `stripe` SDK
+  - [x] `charge()` creates Stripe payment intent, returns `PaymentResult`
+  - [x] `refund()` creates Stripe refund, returns `RefundResult`
+  - [x] `verify()` retrieves payment intent status, returns `VerifyResult`
+  - [x] `verifyWebhook()` validates Stripe signature via HMAC
+  - [x] Error normalization maps Stripe errors to `PaymentErrorCode`
+  - [x] Unit tests with mocked `stripe` SDK
 - **Verification:**
-  - [ ] `pnpm test -- --grep "StripeAdapter"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "StripeAdapter"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 7
 - **Files touched:**
   - `apps/server/src/adapters/stripe/stripe-adapter.ts`
@@ -230,16 +230,16 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 9: Implement Midtrans Adapter
 - **Description:** Full implementation of Midtrans charge, refund, verify + notification verification.
 - **Acceptance criteria:**
-  - [ ] `charge()` calls Midtrans core API with server-key auth
-  - [ ] String `status_code` normalized ("200", "201", "202" → success)
-  - [ ] `refund()` and `verify()` implemented
-  - [ ] `verifyWebhook()` validates Midtrans notification signature
-  - [ ] Error normalization maps string status codes to `PaymentErrorCode`
-  - [ ] "408", "503" marked as retryable
-  - [ ] Unit tests with mocked `midtrans-client`
+  - [x] `charge()` calls Midtrans core API with server-key auth
+  - [x] String `status_code` normalized ("200", "201", "202" → success)
+  - [x] `refund()` and `verify()` implemented
+  - [x] `verifyWebhook()` validates Midtrans notification signature
+  - [x] Error normalization maps string status codes to `PaymentErrorCode`
+  - [x] "408", "503" marked as retryable
+  - [x] Unit tests with mocked `midtrans-client`
 - **Verification:**
-  - [ ] `pnpm test -- --grep "MidtransAdapter"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "MidtransAdapter"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 7
 - **Files touched:**
   - `apps/server/src/adapters/midtrans/midtrans-adapter.ts`
@@ -249,15 +249,15 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 10: Implement Xendit Adapter
 - **Description:** Full implementation of Xendit charge, refund, verify + callback verification.
 - **Acceptance criteria:**
-  - [ ] `charge()` creates Xendit invoice/charge
-  - [ ] `refund()` and `verify()` implemented
-  - [ ] `verifyWebhook()` validates `x-callback-token` header
-  - [ ] Callback-based flow (virtual account, e-wallet) handled
-  - [ ] Error normalization maps Xendit errors to `PaymentErrorCode`
-  - [ ] Unit tests with mocked `xendit-node`
+  - [x] `charge()` creates Xendit invoice/charge
+  - [x] `refund()` and `verify()` implemented
+  - [x] `verifyWebhook()` validates `x-callback-token` header
+  - [x] Callback-based flow (virtual account, e-wallet) handled
+  - [x] Error normalization maps Xendit errors to `PaymentErrorCode`
+  - [x] Unit tests with mocked `xendit-node`
 - **Verification:**
-  - [ ] `pnpm test -- --grep "XenditAdapter"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "XenditAdapter"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 7
 - **Files touched:**
   - `apps/server/src/adapters/xendit/xendit-adapter.ts`
@@ -265,11 +265,11 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 - **Estimated scope:** Medium
 
 ### Checkpoint: Adapters
-- [ ] All 3 adapters implement `IPaymentProvider`
-- [ ] Each adapter has unit tests with mocked SDK
-- [ ] Webhook verification implemented for all 3 providers
-- [ ] Error taxonomy covers all provider-specific codes
-- [ ] **Review with human before proceeding**
+- [x] All 3 adapters implement `IPaymentProvider`
+- [x] Each adapter has unit tests with mocked SDK (9 test suites, 48 tests total)
+- [x] Webhook verification implemented for all 3 providers
+- [x] Error taxonomy covers all provider-specific codes
+- [x] **Review with human before proceeding** ✅ Approved — proceeding to Phase 4
 
 ---
 
