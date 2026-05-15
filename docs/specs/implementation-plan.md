@@ -130,13 +130,13 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 4: Build Provider Registry
 - **Description:** Implement the runtime provider resolution system.
 - **Acceptance criteria:**
-  - [ ] `ProviderRegistry` class with `register()` and `resolve()` methods
-  - [ ] `resolve()` throws `ProviderNotFoundError` for unregistered providers
-  - [ ] Registry is typed with `Map<ProviderName, IPaymentProvider>`
-  - [ ] Unit tests cover register, resolve, and error case
+  - [x] `ProviderRegistry` class with `register()` and `resolve()` methods
+  - [x] `resolve()` throws `ProviderNotFoundError` for unregistered providers
+  - [x] Registry is typed with `Map<ProviderName, IPaymentProvider>`
+  - [x] Unit tests cover register, resolve, and error case
 - **Verification:**
-  - [ ] `pnpm test -- --grep "ProviderRegistry"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "ProviderRegistry"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 3
 - **Files touched:**
   - `apps/server/src/core/provider-registry.ts`
@@ -146,14 +146,14 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 5: Build Retry Manager
 - **Description:** Implement exponential backoff retry logic with domain-aware retryability.
 - **Acceptance criteria:**
-  - [ ] `RetryManager` class with `execute<T>(fn: () => Promise<T>, isRetryable: (error) => boolean)`
-  - [ ] 3 max attempts with delays: 1s, 2s, 4s (exponential backoff)
-  - [ ] Non-retryable errors fail immediately on first attempt
-  - [ ] Retryable errors retry up to 3 times, then throw last error
-  - [ ] Unit tests cover: success on first try, success on retry, max retries exceeded, non-retryable immediate fail
+  - [x] `RetryManager` class with `execute<T>(fn: () => Promise<T>, isRetryable: (error) => boolean)`
+  - [x] 3 max attempts with delays: 1s, 2s, 4s (exponential backoff)
+  - [x] Non-retryable errors fail immediately on first attempt
+  - [x] Retryable errors retry up to 3 times, then throw last error
+  - [x] Unit tests cover: success on first try, success on retry, max retries exceeded, non-retryable immediate fail
 - **Verification:**
-  - [ ] `pnpm test -- --grep "RetryManager"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "RetryManager"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 3
 - **Files touched:**
   - `apps/server/src/core/retry-manager.ts`
@@ -163,14 +163,14 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 #### Task 6: Build Audit Logger
 - **Description:** Create service that writes every transaction to the database before returning response.
 - **Acceptance criteria:**
-  - [ ] `AuditLogger` class with `log(payload: AuditLogPayload): Promise<void>`
-  - [ ] Writes to `transactions` table via Drizzle ORM
-  - [ ] Stores all fields: provider, providerRef, operation, amount, currency, status, rawResponse, error details
-  - [ ] Transaction ID generated as `txn_${crypto.randomUUID().replace(/-/g, '')}`
-  - [ ] Unit tests with mocked Drizzle client
+  - [x] `AuditLogger` class with `log(payload: AuditLogPayload): Promise<void>`
+  - [x] Writes to `transactions` table via Drizzle ORM
+  - [x] Stores all fields: provider, providerRef, operation, amount, currency, status, rawResponse, error details
+  - [x] Transaction ID generated as `txn_${crypto.randomUUID().replace(/-/g, '')}`
+  - [x] Unit tests with mocked Drizzle client
 - **Verification:**
-  - [ ] `pnpm test -- --grep "AuditLogger"` passes
-  - [ ] `pnpm check-types` passes
+  - [x] `pnpm test -- --grep "AuditLogger"` passes
+  - [x] `pnpm check-types` passes
 - **Dependencies:** Task 2, Task 3
 - **Files touched:**
   - `apps/server/src/core/audit-logger.ts`
@@ -178,11 +178,11 @@ Core types (IPaymentProvider, PaymentResult, NormalizedError, PaymentErrorCode)
 - **Estimated scope:** Medium
 
 ### Checkpoint: Core Infrastructure
-- [ ] Provider registry resolves adapters at runtime
-- [ ] Retry manager handles 3 attempts with exponential backoff
-- [ ] Audit logger writes to database
-- [ ] All unit tests pass
-- [ ] **Review with human before proceeding**
+- [x] Provider registry resolves adapters at runtime
+- [x] Retry manager handles 3 attempts with exponential backoff
+- [x] Audit logger writes to database
+- [x] All unit tests pass (19 tests across 3 suites)
+- [x] **Review with human before proceeding** ✅ Approved — proceeding to Phase 3
 
 ---
 
