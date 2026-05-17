@@ -26,12 +26,18 @@ export class RetryManager {
           throw error;
         }
 
-        const delayMs = this.baseDelayMs * 2 ** (attempt - 1);
+        const delayMs = this.calculateBackoff(attempt);
         await this.sleep(delayMs);
       }
     }
 
     throw lastError;
+  }
+
+  private calculateBackoff(attempt: number): number {
+    const base = this.baseDelayMs * 2 ** (attempt - 1);
+    const jitter = Math.random() * base * 0.5; // 0-50% jitter
+    return Math.floor(base + jitter);
   }
 
   private sleep(ms: number): Promise<void> {

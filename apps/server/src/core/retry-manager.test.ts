@@ -62,7 +62,7 @@ describe("RetryManager", () => {
       expect(isRetryable).toHaveBeenCalledTimes(1);
     });
 
-    it("should apply exponential backoff between retries", async () => {
+    it("should apply exponential backoff with jitter between retries", async () => {
       const delays: number[] = [];
       const originalSetTimeout = global.setTimeout;
       global.setTimeout = ((callback: () => void, ms?: number) => {
@@ -80,8 +80,45 @@ describe("RetryManager", () => {
       global.setTimeout = originalSetTimeout;
 
       expect(delays).toHaveLength(2);
-      expect(delays[0]).toBe(100); // 100 * 2^0
-      expect(delays[1]).toBe(200); // 100 * 2^1
+      // With 0-50% jitter: base * 2^(attempt-1) <= delay <= base * 2^(attempt-1) * 1.5
+      expect(delays[0]).toBeGreaterThanOrEqual(100); // 100 * 2^0
+      expect(delays[0]).toBeLessThanOrEqual(150); // 100 * 1.5
+      expect(delays[1]).toBeGreaterThanOrEqual(200); // 100 * 2^1
+      expect(delays[1]).toBeLessThanOrEqual(300); // 200 * 1.5
+    });
+
+    it("should add jitter within expected range", async () => {
+      // Run multiple times to verify jitter randomization
+      const observedDelays: number[] = [];
+
+      for (let i = 0; i < 20; i++) {
+        const delays: number[] = [];
+        const originalSetTimeout = global.setTimeout;
+        global.setTimeout = ((callback: () => void, ms?: number) => {
+          if (ms) delays.push(ms);
+          return originalSetTimeout(callback, 0);
+        }) as typeof global.setTimeout;
+
+        const fn = jest.fn().mockRejectedValue(new Error("retryable"));
+        const isRetryable = jest.fn().mockReturnValue(true);
+
+        await expect(retryManager.execute(fn, isRetryable)).rejects.toThrow(
+          "retryable",
+        );
+
+        global.setTimeout = originalSetTimeout;
+        observedDelays.push(...delays);
+      }
+
+      // With true randomization, we should observe some variation
+      const uniqueDelays = new Set(observedDelays);
+      expect(uniqueDelays.size).toBeGreaterThan(1);
+
+      // All delays should be within the expected range
+      for (const delay of observedDelays) {
+        expect(delay).toBeGreaterThanOrEqual(100);
+        expect(delay).toBeLessThanOrEqual(300);
+      }
     });
 
     it("should call isRetryable on every failed attempt including the last", async () => {
