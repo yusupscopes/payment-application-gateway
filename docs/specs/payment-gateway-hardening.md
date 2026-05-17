@@ -252,14 +252,14 @@ export class RetryManager {
 ## Success Criteria (Detailed)
 
 ### Phase 1: Security & Reliability
-- [ ] Stripe webhook uses `STRIPE_WEBHOOK_SECRET` (not API secret key) for signature verification
-- [ ] Midtrans webhook verifies notification signature before accepting events
-- [ ] Webhook route captures raw request body before any parsing
-- [ ] Retry manager adds 0-50% jitter to exponential backoff
-- [ ] Circuit breaker wraps provider calls and opens after threshold failures
-- [ ] API key authentication middleware validates `x-api-key` header against configured keys
-- [ ] Per-API-key rate limiter restricts `/v1/payments/*` to configurable requests per window per key
-- [ ] All existing tests pass; new tests cover jitter, circuit breaker, and rate limiting
+- [x] Stripe webhook uses `STRIPE_WEBHOOK_SECRET` (not API secret key) for signature verification
+- [x] Midtrans webhook verifies notification signature before accepting events
+- [x] Webhook route captures raw request body before any parsing
+- [x] Retry manager adds 0-50% jitter to exponential backoff
+- [x] Circuit breaker wraps provider calls and opens after threshold failures
+- [x] API key authentication middleware validates `x-api-key` header against configured keys
+- [x] Per-API-key rate limiter restricts `/v1/payments/*` to configurable requests per window per key
+- [x] All existing tests pass; new tests cover jitter, circuit breaker, and rate limiting
 
 ### Phase 2: Core Refactoring
 - [ ] `PaymentGateway` uses single `executeOperation()` helper instead of duplicated logic in `charge/refund/verify`
