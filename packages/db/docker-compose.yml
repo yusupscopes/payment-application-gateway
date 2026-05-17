@@ -19,5 +19,20 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: payment-application-gateway-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - payment-application-gateway_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   payment-application-gateway_postgres_data:
+  payment-application-gateway_redis_data:

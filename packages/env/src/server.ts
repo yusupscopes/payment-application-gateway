@@ -11,8 +11,11 @@ export const env = createEnv({
       .enum(["development", "production", "test"])
       .default("development"),
     STRIPE_SECRET_KEY: z.string().min(1),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
     MIDTRANS_SERVER_KEY: z.string().min(1),
     XENDIT_SECRET_KEY: z.string().min(1),
+    API_KEYS: z.string().min(1).optional(),
+    REDIS_URL: z.string().min(1).default("redis://localhost:6379"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
