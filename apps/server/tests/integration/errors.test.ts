@@ -1,5 +1,7 @@
 import { createApp } from "../../src/app.js";
 
+const TEST_API_KEY = "test-api-key-1";
+
 describe("Integration: Error Handling", () => {
   let app: ReturnType<typeof createApp>;
 
@@ -10,7 +12,10 @@ describe("Integration: Error Handling", () => {
   it("should return 400 for validation errors", async () => {
     const res = await app.request("/v1/payments/charge", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": TEST_API_KEY,
+      },
       body: JSON.stringify({
         provider: "stripe",
         amount: "not-a-number",
@@ -25,7 +30,10 @@ describe("Integration: Error Handling", () => {
   it("should return 400 for missing required fields", async () => {
     const res = await app.request("/v1/payments/charge", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": TEST_API_KEY,
+      },
       body: JSON.stringify({
         provider: "stripe",
       }),

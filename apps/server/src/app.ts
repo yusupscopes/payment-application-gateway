@@ -1,6 +1,7 @@
 import type { Database } from "@payment-application-gateway/db";
 import { createDb } from "@payment-application-gateway/db";
 import { env } from "@payment-application-gateway/env/server";
+import { createRedisClient } from "@payment-application-gateway/redis";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -11,7 +12,9 @@ import { AuditLogger } from "./core/audit-logger.js";
 import { PaymentGateway } from "./core/payment-gateway.js";
 import { ProviderRegistry } from "./core/provider-registry.js";
 import { RetryManager } from "./core/retry-manager.js";
+import { createApiKeyAuth, parseApiKeys } from "./middleware/api-key-auth.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { createRateLimiter } from "./middleware/rate-limiter.js";
 import { createPaymentRoutes } from "./routes/payments.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
 
@@ -36,7 +39,12 @@ export function createApp(options: { database?: Database } = {}) {
   const auditLogger = new AuditLogger(db);
 
   // Register adapters
-  registry.register(new StripeAdapter({ secretKey: env.STRIPE_SECRET_KEY }));
+  registry.register(
+    new StripeAdapter({
+      secretKey: env.STRIPE_SECRET_KEY,
+      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+    }),
+  );
   registry.register(
     new MidtransAdapter({ serverKey: env.MIDTRANS_SERVER_KEY }),
   );
@@ -46,7 +54,39 @@ export function createApp(options: { database?: Database } = {}) {
   const gateway = new PaymentGateway(registry, retryManager, auditLogger);
 
   // Routes
-  app.route("/v1/payments", createPaymentRoutes(gateway));
+  const apiKeys = parseApiKeys(env.API_KEYS);
+  const paymentHandlers = createPaymentRoutes(gateway);
+
+  // Create a wrapper app for payments so middleware runs before route handlers
+  const paymentRoutes = new Hono();
+
+  if (apiKeys.size > 0) {
+    paymentRoutes.use(createApiKeyAuth(apiKeys));
+
+    // Add per-API-key rate limiting when Redis is available (skip in test env)
+    if (env.NODE_ENV !== "test") {
+      try {
+        const redisClient = createRedisClient(env.REDIS_URL);
+        paymentRoutes.use(
+          createRateLimiter({
+            client: redisClient,
+            windowMs: 60000,
+            limit: 100,
+            keyGenerator: (c) => c.req.header("x-api-key") ?? "anonymous",
+          }),
+        );
+      } catch (error) {
+        console.warn(
+          "[Payment Gateway] Redis rate limiting unavailable:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+  }
+
+  paymentRoutes.route("/", paymentHandlers);
+
+  app.route("/v1/payments", paymentRoutes);
   app.route("/v1/webhooks", createWebhookRoutes(registry));
 
   app.get("/", (c) => {
