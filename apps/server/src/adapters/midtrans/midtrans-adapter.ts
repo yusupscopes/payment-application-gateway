@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { CoreApi } from "midtrans-client";
 import type {
   ChargePayload,
@@ -17,8 +17,10 @@ import type {
 export class MidtransAdapter implements IPaymentProvider {
   readonly name = "midtrans" as const;
   private client: CoreApi;
+  private config: { serverKey: string };
 
   constructor(config: { serverKey: string }) {
+    this.config = config;
     this.client = new CoreApi({
       isProduction: false,
       serverKey: config.serverKey,
@@ -138,15 +140,61 @@ export class MidtransAdapter implements IPaymentProvider {
     }
   }
 
-  async verifyWebhook(_payload: WebhookPayload): Promise<WebhookResult> {
-    // Midtrans webhook notification verification typically involves
-    // checking the signature in the notification payload
-    // For now, we accept the notification and return success
-    // In production, this should verify the notification hash
+  async verifyWebhook(payload: WebhookPayload): Promise<WebhookResult> {
+    const body = payload.body as Record<string, unknown>;
+
+    // Midtrans webhook signature verification
+    // Signature is calculated as: SHA512(order_id + status_code + gross_amount + serverKey)
+    const orderId = body.order_id;
+    const statusCode = body.status_code;
+    const grossAmount = body.gross_amount;
+    const signatureKey = body.signature_key;
+
+    if (
+      typeof orderId !== "string" ||
+      typeof statusCode !== "string" ||
+      typeof grossAmount !== "string" ||
+      typeof signatureKey !== "string"
+    ) {
+      return {
+        success: false,
+        event: "invalid",
+        raw: body,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Invalid webhook payload: missing required fields",
+          retryable: false,
+        },
+      };
+    }
+
+    const expectedSignature = createHash("sha512")
+      .update(`${orderId}${statusCode}${grossAmount}${this.config.serverKey}`)
+      .digest("hex");
+
+    if (signatureKey !== expectedSignature) {
+      return {
+        success: false,
+        event: "invalid",
+        raw: body,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Invalid webhook signature",
+          retryable: false,
+        },
+      };
+    }
+
     return {
       success: true,
-      event: "notification",
-      raw: {},
+      event: String(body.transaction_status ?? "notification"),
+      transactionId:
+        typeof body.order_id === "string" ? body.order_id : undefined,
+      providerRef:
+        typeof body.transaction_id === "string"
+          ? body.transaction_id
+          : undefined,
+      raw: body,
     };
   }
 

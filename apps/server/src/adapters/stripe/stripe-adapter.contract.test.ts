@@ -6,6 +6,14 @@ describe("StripeAdapter Contract", () => {
     expect(adapter.name).toBe("stripe");
   });
 
+  it("should accept webhook secret in constructor", () => {
+    const adapter = new StripeAdapter({
+      secretKey: "test",
+      webhookSecret: "whsec_test",
+    });
+    expect(adapter.name).toBe("stripe");
+  });
+
   it("should implement IPaymentProvider interface", () => {
     const adapter = new StripeAdapter({ secretKey: "test" });
     expect(typeof adapter.charge).toBe("function");

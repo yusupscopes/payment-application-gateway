@@ -43,7 +43,22 @@ export function createWebhookRoutes(registry: ProviderRegistry) {
       c.req.header("x-midtrans-signature") ||
       "";
 
-    const body = await c.req.json().catch(() => ({}));
+    // Capture raw body first for HMAC verification
+    const rawBody = await c.req.text();
+    let body: unknown;
+    try {
+      body = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      return c.json(
+        {
+          error: {
+            code: "INVALID_REQUEST",
+            message: "Invalid JSON body",
+          },
+        },
+        400,
+      );
+    }
 
     const result = await provider.verifyWebhook({
       provider: providerName,

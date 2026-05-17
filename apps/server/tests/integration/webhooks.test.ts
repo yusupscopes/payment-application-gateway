@@ -19,6 +19,22 @@ describe("Integration: Webhook Routes", () => {
     expect(body.error.code).toBe("INVALID_REQUEST");
   });
 
+  it("should return 400 for malformed JSON body", async () => {
+    const res = await app.request("/v1/webhooks/stripe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "stripe-signature": "sig_test",
+      },
+      body: "not-valid-json",
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe("INVALID_REQUEST");
+    expect(body.error.message).toBe("Invalid JSON body");
+  });
+
   it("should return 401 for invalid Xendit webhook", async () => {
     const res = await app.request("/v1/webhooks/xendit", {
       method: "POST",

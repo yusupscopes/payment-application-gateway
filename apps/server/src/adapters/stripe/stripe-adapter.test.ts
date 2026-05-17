@@ -195,6 +195,18 @@ describe("StripeAdapter", () => {
   });
 
   describe("verifyWebhook", () => {
+    it("should return error when webhook secret is not configured", async () => {
+      const result = await adapter.verifyWebhook({
+        provider: "stripe",
+        signature: "sig_test123",
+        body: { id: "evt_test123" },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.code).toBe("UNAUTHORIZED");
+      expect(result.error?.message).toBe("Webhook secret not configured");
+    });
+
     it("should verify valid webhook signature", async () => {
       mockConstructEvent.mockReturnValue({
         type: "payment_intent.succeeded",
@@ -206,7 +218,12 @@ describe("StripeAdapter", () => {
         },
       });
 
-      const result = await adapter.verifyWebhook({
+      const webhookAdapter = new StripeAdapter({
+        secretKey: "sk_test_123",
+        webhookSecret: "whsec_test",
+      });
+
+      const result = await webhookAdapter.verifyWebhook({
         provider: "stripe",
         signature: "sig_test123",
         body: { id: "evt_test123" },
@@ -224,7 +241,12 @@ describe("StripeAdapter", () => {
         throw new Error("Invalid signature");
       });
 
-      const result = await adapter.verifyWebhook({
+      const webhookAdapter = new StripeAdapter({
+        secretKey: "sk_test_123",
+        webhookSecret: "whsec_test",
+      });
+
+      const result = await webhookAdapter.verifyWebhook({
         provider: "stripe",
         signature: "invalid_sig",
         body: {},

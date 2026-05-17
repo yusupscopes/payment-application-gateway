@@ -18,7 +18,7 @@ export class StripeAdapter implements IPaymentProvider {
   readonly name = "stripe" as const;
   private client: Stripe;
 
-  constructor(private config: { secretKey: string }) {
+  constructor(private config: { secretKey: string; webhookSecret?: string }) {
     this.client = new Stripe(config.secretKey);
   }
 
@@ -137,11 +137,24 @@ export class StripeAdapter implements IPaymentProvider {
   }
 
   async verifyWebhook(payload: WebhookPayload): Promise<WebhookResult> {
+    if (!this.config.webhookSecret) {
+      return {
+        success: false,
+        event: "invalid",
+        raw: {},
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Webhook secret not configured",
+          retryable: false,
+        },
+      };
+    }
+
     try {
       const event = this.client.webhooks.constructEvent(
         JSON.stringify(payload.body),
         payload.signature,
-        this.config.secretKey,
+        this.config.webhookSecret,
       );
 
       return {

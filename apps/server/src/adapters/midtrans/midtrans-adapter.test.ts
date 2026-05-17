@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { MidtransAdapter } from "./midtrans-adapter.js";
 
 const mockCharge = jest.fn();
@@ -157,6 +158,64 @@ describe("MidtransAdapter", () => {
       });
 
       expect(result.status).toBe("failed");
+    });
+  });
+
+  describe("verifyWebhook", () => {
+    it("should verify valid webhook signature", async () => {
+      const orderId = "order-123";
+      const statusCode = "200";
+      const grossAmount = "100000";
+      const serverKey = "test-server-key";
+
+      const signatureKey = createHash("sha512")
+        .update(`${orderId}${statusCode}${grossAmount}${serverKey}`)
+        .digest("hex");
+
+      const result = await adapter.verifyWebhook({
+        provider: "midtrans",
+        signature: "",
+        body: {
+          order_id: orderId,
+          status_code: statusCode,
+          gross_amount: grossAmount,
+          signature_key: signatureKey,
+          transaction_id: "midtrans-123",
+          transaction_status: "settlement",
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.providerRef).toBe("midtrans-123");
+    });
+
+    it("should reject invalid webhook signature", async () => {
+      const result = await adapter.verifyWebhook({
+        provider: "midtrans",
+        signature: "",
+        body: {
+          order_id: "order-123",
+          status_code: "200",
+          gross_amount: "100000",
+          signature_key: "invalid-signature",
+          transaction_id: "midtrans-123",
+        },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.code).toBe("UNAUTHORIZED");
+    });
+
+    it("should reject webhook with missing fields", async () => {
+      const result = await adapter.verifyWebhook({
+        provider: "midtrans",
+        signature: "",
+        body: {},
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.code).toBe("UNAUTHORIZED");
+      expect(result.error?.message).toContain("missing required fields");
     });
   });
 });
