@@ -22,7 +22,10 @@ export class XenditAdapter implements IPaymentProvider {
     this.client = new Xendit({ secretKey: config.secretKey });
   }
 
-  async charge(payload: ChargePayload): Promise<PaymentResult> {
+  async charge(
+    payload: ChargePayload,
+    transactionId: string,
+  ): Promise<PaymentResult> {
     try {
       // For Xendit, we'll use Invoice API for charges
       const invoice = await this.client.Invoice.createInvoice({
@@ -30,13 +33,13 @@ export class XenditAdapter implements IPaymentProvider {
           amount: payload.amount,
           currency: payload.currency,
           description: payload.description,
-          externalId: this.generateTransactionId(),
+          externalId: transactionId,
         },
       });
 
       return {
         success: true,
-        transactionId: this.generateTransactionId(),
+        transactionId,
         amount: payload.amount,
         currency: payload.currency,
         provider: "xendit",
@@ -46,7 +49,7 @@ export class XenditAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: this.generateTransactionId(),
+        transactionId,
         amount: payload.amount,
         currency: payload.currency,
         provider: "xendit",
@@ -57,7 +60,10 @@ export class XenditAdapter implements IPaymentProvider {
     }
   }
 
-  async refund(payload: RefundPayload): Promise<RefundResult> {
+  async refund(
+    payload: RefundPayload,
+    transactionId: string,
+  ): Promise<RefundResult> {
     try {
       const refund = await this.client.Refund.createRefund({
         data: {
@@ -69,8 +75,8 @@ export class XenditAdapter implements IPaymentProvider {
 
       return {
         success: true,
-        transactionId: payload.transactionId,
-        refundId: this.generateTransactionId(),
+        transactionId,
+        refundId: `ref_${randomUUID().replace(/-/g, "")}`,
         amount: refund.amount ?? payload.amount ?? 0,
         currency: "IDR",
         provider: "xendit",
@@ -80,8 +86,8 @@ export class XenditAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: payload.transactionId,
-        refundId: this.generateTransactionId(),
+        transactionId,
+        refundId: `ref_${randomUUID().replace(/-/g, "")}`,
         amount: payload.amount ?? 0,
         currency: "IDR",
         provider: "xendit",
@@ -92,7 +98,10 @@ export class XenditAdapter implements IPaymentProvider {
     }
   }
 
-  async verify(payload: VerifyPayload): Promise<VerifyResult> {
+  async verify(
+    payload: VerifyPayload,
+    transactionId: string,
+  ): Promise<VerifyResult> {
     try {
       const invoice = await this.client.Invoice.getInvoiceById({
         invoiceId: payload.transactionId,
@@ -100,7 +109,7 @@ export class XenditAdapter implements IPaymentProvider {
 
       return {
         success: true,
-        transactionId: payload.transactionId,
+        transactionId,
         status: this.mapXenditStatus(invoice.status),
         provider: "xendit",
         providerRef: invoice.id ?? "",
@@ -109,7 +118,7 @@ export class XenditAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: payload.transactionId,
+        transactionId,
         status: "failed",
         provider: "xendit",
         providerRef: "",
@@ -232,9 +241,5 @@ export class XenditAdapter implements IPaymentProvider {
       if (typeof id === "string") return id;
     }
     return undefined;
-  }
-
-  private generateTransactionId(): string {
-    return `txn_${randomUUID().replace(/-/g, "")}`;
   }
 }

@@ -7,11 +7,7 @@ export function createWebhookRoutes(registry: ProviderRegistry) {
   app.post("/:provider", async (c) => {
     const providerName = c.req.param("provider");
 
-    if (
-      providerName !== "stripe" &&
-      providerName !== "midtrans" &&
-      providerName !== "xendit"
-    ) {
+    if (!registry.hasProvider(providerName)) {
       return c.json(
         {
           error: {

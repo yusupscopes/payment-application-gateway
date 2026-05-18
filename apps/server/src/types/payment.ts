@@ -104,8 +104,8 @@ export interface WebhookResult {
 export interface IPaymentProvider {
   readonly name: ProviderName;
 
-  charge(payload: ChargePayload): Promise<PaymentResult>;
-  refund(payload: RefundPayload): Promise<RefundResult>;
-  verify(payload: VerifyPayload): Promise<VerifyResult>;
+  charge(payload: ChargePayload, transactionId: string): Promise<PaymentResult>;
+  refund(payload: RefundPayload, transactionId: string): Promise<RefundResult>;
+  verify(payload: VerifyPayload, transactionId: string): Promise<VerifyResult>;
   verifyWebhook?(payload: WebhookPayload): Promise<WebhookResult>;
 }

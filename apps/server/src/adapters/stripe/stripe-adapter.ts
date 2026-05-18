@@ -22,7 +22,10 @@ export class StripeAdapter implements IPaymentProvider {
     this.client = new Stripe(config.secretKey);
   }
 
-  async charge(payload: ChargePayload): Promise<PaymentResult> {
+  async charge(
+    payload: ChargePayload,
+    transactionId: string,
+  ): Promise<PaymentResult> {
     try {
       const paymentIntent = await this.client.paymentIntents.create({
         amount: payload.amount,
@@ -39,7 +42,7 @@ export class StripeAdapter implements IPaymentProvider {
 
       return {
         success,
-        transactionId: this.generateTransactionId(),
+        transactionId,
         amount: payload.amount,
         currency: payload.currency,
         provider: "stripe",
@@ -56,7 +59,7 @@ export class StripeAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: this.generateTransactionId(),
+        transactionId,
         amount: payload.amount,
         currency: payload.currency,
         provider: "stripe",
@@ -67,7 +70,10 @@ export class StripeAdapter implements IPaymentProvider {
     }
   }
 
-  async refund(payload: RefundPayload): Promise<RefundResult> {
+  async refund(
+    payload: RefundPayload,
+    transactionId: string,
+  ): Promise<RefundResult> {
     try {
       const refund = await this.client.refunds.create({
         payment_intent: payload.transactionId,
@@ -79,8 +85,8 @@ export class StripeAdapter implements IPaymentProvider {
 
       return {
         success,
-        transactionId: payload.transactionId,
-        refundId: this.generateTransactionId(),
+        transactionId,
+        refundId: `ref_${randomUUID().replace(/-/g, "")}`,
         amount: refund.amount,
         currency: refund.currency.toUpperCase(),
         provider: "stripe",
@@ -97,8 +103,8 @@ export class StripeAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: payload.transactionId,
-        refundId: this.generateTransactionId(),
+        transactionId,
+        refundId: `ref_${randomUUID().replace(/-/g, "")}`,
         amount: payload.amount ?? 0,
         currency: "",
         provider: "stripe",
@@ -109,7 +115,10 @@ export class StripeAdapter implements IPaymentProvider {
     }
   }
 
-  async verify(payload: VerifyPayload): Promise<VerifyResult> {
+  async verify(
+    payload: VerifyPayload,
+    transactionId: string,
+  ): Promise<VerifyResult> {
     try {
       const paymentIntent = await this.client.paymentIntents.retrieve(
         payload.transactionId,
@@ -117,7 +126,7 @@ export class StripeAdapter implements IPaymentProvider {
 
       return {
         success: true,
-        transactionId: payload.transactionId,
+        transactionId,
         status: this.mapStripeStatus(paymentIntent.status),
         provider: "stripe",
         providerRef: paymentIntent.id,
@@ -126,7 +135,7 @@ export class StripeAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: payload.transactionId,
+        transactionId,
         status: "failed",
         provider: "stripe",
         providerRef: "",
@@ -304,9 +313,5 @@ export class StripeAdapter implements IPaymentProvider {
       return object.id;
     }
     return undefined;
-  }
-
-  private generateTransactionId(): string {
-    return `txn_${randomUUID().replace(/-/g, "")}`;
   }
 }

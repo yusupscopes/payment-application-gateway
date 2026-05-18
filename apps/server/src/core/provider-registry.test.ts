@@ -15,10 +15,13 @@ import {
 class MockAdapter implements IPaymentProvider {
   readonly name = "stripe" as const;
 
-  async charge(_payload: ChargePayload): Promise<PaymentResult> {
+  async charge(
+    _payload: ChargePayload,
+    _transactionId: string,
+  ): Promise<PaymentResult> {
     return {
       success: true,
-      transactionId: "txn_test",
+      transactionId: _transactionId,
       amount: 100,
       currency: "USD",
       provider: "stripe",
@@ -27,10 +30,13 @@ class MockAdapter implements IPaymentProvider {
     };
   }
 
-  async refund(_payload: RefundPayload): Promise<RefundResult> {
+  async refund(
+    _payload: RefundPayload,
+    _transactionId: string,
+  ): Promise<RefundResult> {
     return {
       success: true,
-      transactionId: "txn_test",
+      transactionId: _transactionId,
       refundId: "re_test",
       amount: 100,
       currency: "USD",
@@ -40,10 +46,13 @@ class MockAdapter implements IPaymentProvider {
     };
   }
 
-  async verify(_payload: VerifyPayload): Promise<VerifyResult> {
+  async verify(
+    _payload: VerifyPayload,
+    _transactionId: string,
+  ): Promise<VerifyResult> {
     return {
       success: true,
-      transactionId: "txn_test",
+      transactionId: _transactionId,
       status: "captured",
       provider: "stripe",
       providerRef: "pi_test",
@@ -108,6 +117,26 @@ describe("ProviderRegistry", () => {
         expect(error).toBeInstanceOf(ProviderNotFoundError);
         expect((error as ProviderNotFoundError).providerName).toBe("midtrans");
       }
+    });
+  });
+
+  describe("hasProvider", () => {
+    it("should return true for registered provider", () => {
+      registry.register(new MockAdapter());
+
+      expect(registry.hasProvider("stripe")).toBe(true);
+    });
+
+    it("should return false for unregistered provider", () => {
+      expect(registry.hasProvider("stripe")).toBe(false);
+    });
+
+    it("should return false for unknown provider name", () => {
+      expect(registry.hasProvider("unknown")).toBe(false);
+    });
+
+    it("should return false for non-string provider name", () => {
+      expect(registry.hasProvider("")).toBe(false);
     });
   });
 

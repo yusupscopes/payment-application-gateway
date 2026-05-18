@@ -28,12 +28,15 @@ export class MidtransAdapter implements IPaymentProvider {
     });
   }
 
-  async charge(payload: ChargePayload): Promise<PaymentResult> {
+  async charge(
+    payload: ChargePayload,
+    transactionId: string,
+  ): Promise<PaymentResult> {
     try {
       const response = await this.client.charge({
         payment_type: payload.paymentMethod,
         transaction_details: {
-          order_id: this.generateTransactionId(),
+          order_id: transactionId,
           gross_amount: payload.amount,
         },
         currency: payload.currency,
@@ -47,7 +50,7 @@ export class MidtransAdapter implements IPaymentProvider {
 
       return {
         success,
-        transactionId: this.generateTransactionId(),
+        transactionId,
         amount: payload.amount,
         currency: payload.currency,
         provider: "midtrans",
@@ -58,7 +61,7 @@ export class MidtransAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: this.generateTransactionId(),
+        transactionId,
         amount: payload.amount,
         currency: payload.currency,
         provider: "midtrans",
@@ -69,7 +72,10 @@ export class MidtransAdapter implements IPaymentProvider {
     }
   }
 
-  async refund(payload: RefundPayload): Promise<RefundResult> {
+  async refund(
+    payload: RefundPayload,
+    transactionId: string,
+  ): Promise<RefundResult> {
     try {
       const response = await this.client.refund(payload.transactionId, {
         amount: payload.amount,
@@ -83,8 +89,8 @@ export class MidtransAdapter implements IPaymentProvider {
 
       return {
         success,
-        transactionId: payload.transactionId,
-        refundId: this.generateTransactionId(),
+        transactionId,
+        refundId: `ref_${randomUUID().replace(/-/g, "")}`,
         amount: payload.amount ?? 0,
         currency: "IDR",
         provider: "midtrans",
@@ -95,8 +101,8 @@ export class MidtransAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: payload.transactionId,
-        refundId: this.generateTransactionId(),
+        transactionId,
+        refundId: `ref_${randomUUID().replace(/-/g, "")}`,
         amount: payload.amount ?? 0,
         currency: "IDR",
         provider: "midtrans",
@@ -107,7 +113,10 @@ export class MidtransAdapter implements IPaymentProvider {
     }
   }
 
-  async verify(payload: VerifyPayload): Promise<VerifyResult> {
+  async verify(
+    payload: VerifyPayload,
+    transactionId: string,
+  ): Promise<VerifyResult> {
     try {
       const response = await this.client.transaction.status(
         payload.transactionId,
@@ -120,7 +129,7 @@ export class MidtransAdapter implements IPaymentProvider {
 
       return {
         success,
-        transactionId: payload.transactionId,
+        transactionId,
         status: this.mapMidtransStatus(midtransResponse.transaction_status),
         provider: "midtrans",
         providerRef: midtransResponse.transaction_id ?? "",
@@ -130,7 +139,7 @@ export class MidtransAdapter implements IPaymentProvider {
     } catch (error) {
       return {
         success: false,
-        transactionId: payload.transactionId,
+        transactionId,
         status: "failed",
         provider: "midtrans",
         providerRef: "",
@@ -266,10 +275,6 @@ export class MidtransAdapter implements IPaymentProvider {
     };
 
     return statusMap[status ?? ""] || "failed";
-  }
-
-  private generateTransactionId(): string {
-    return `txn_${randomUUID().replace(/-/g, "")}`;
   }
 }
 

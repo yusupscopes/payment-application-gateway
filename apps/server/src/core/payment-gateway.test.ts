@@ -120,6 +120,8 @@ describe("PaymentGateway", () => {
 
       expect(result.success).toBe(true);
       expect(mockProvider.charge).toHaveBeenCalledTimes(2);
+      // Audit log should be written exactly once, not on every retry attempt
+      expect(mockLog).toHaveBeenCalledTimes(1);
     });
 
     it("should not retry on non-retryable error", async () => {

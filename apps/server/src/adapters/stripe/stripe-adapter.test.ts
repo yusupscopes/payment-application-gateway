@@ -52,19 +52,22 @@ describe("StripeAdapter", () => {
         currency: "usd",
       });
 
-      const result = await adapter.charge({
-        provider: "stripe",
-        amount: 1000,
-        currency: "USD",
-        paymentMethod: "pm_test123",
-      });
+      const result = await adapter.charge(
+        {
+          provider: "stripe",
+          amount: 1000,
+          currency: "USD",
+          paymentMethod: "pm_test123",
+        },
+        "txn_test123",
+      );
 
       expect(result.success).toBe(true);
       expect(result.provider).toBe("stripe");
       expect(result.providerRef).toBe("pi_test123");
       expect(result.amount).toBe(1000);
       expect(result.currency).toBe("USD");
-      expect(result.transactionId).toMatch(/^txn_/);
+      expect(result.transactionId).toBe("txn_test123");
       expect(mockPaymentIntentsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 1000,
@@ -84,12 +87,15 @@ describe("StripeAdapter", () => {
         }),
       );
 
-      const result = await adapter.charge({
-        provider: "stripe",
-        amount: 1000,
-        currency: "USD",
-        paymentMethod: "pm_test123",
-      });
+      const result = await adapter.charge(
+        {
+          provider: "stripe",
+          amount: 1000,
+          currency: "USD",
+          paymentMethod: "pm_test123",
+        },
+        "txn_test456",
+      );
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe("CARD_DECLINED");
@@ -106,12 +112,15 @@ describe("StripeAdapter", () => {
         }),
       );
 
-      const result = await adapter.charge({
-        provider: "stripe",
-        amount: 1000,
-        currency: "USD",
-        paymentMethod: "pm_test123",
-      });
+      const result = await adapter.charge(
+        {
+          provider: "stripe",
+          amount: 1000,
+          currency: "USD",
+          paymentMethod: "pm_test123",
+        },
+        "txn_test789",
+      );
 
       expect(result.error?.code).toBe("RATE_LIMITED");
       expect(result.error?.retryable).toBe(true);
@@ -127,11 +136,14 @@ describe("StripeAdapter", () => {
         currency: "usd",
       });
 
-      const result = await adapter.refund({
-        provider: "stripe",
-        transactionId: "pi_test123",
-        amount: 500,
-      });
+      const result = await adapter.refund(
+        {
+          provider: "stripe",
+          transactionId: "pi_test123",
+          amount: 500,
+        },
+        "txn_refund123",
+      );
 
       expect(result.success).toBe(true);
       expect(result.providerRef).toBe("re_test123");
@@ -148,10 +160,13 @@ describe("StripeAdapter", () => {
         }),
       );
 
-      const result = await adapter.refund({
-        provider: "stripe",
-        transactionId: "pi_test123",
-      });
+      const result = await adapter.refund(
+        {
+          provider: "stripe",
+          transactionId: "pi_test123",
+        },
+        "txn_refund456",
+      );
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe("GATEWAY_ERROR");
@@ -165,10 +180,13 @@ describe("StripeAdapter", () => {
         status: "succeeded",
       });
 
-      const result = await adapter.verify({
-        provider: "stripe",
-        transactionId: "pi_test123",
-      });
+      const result = await adapter.verify(
+        {
+          provider: "stripe",
+          transactionId: "pi_test123",
+        },
+        "txn_verify123",
+      );
 
       expect(result.success).toBe(true);
       expect(result.status).toBe("settled");
@@ -184,10 +202,13 @@ describe("StripeAdapter", () => {
         }),
       );
 
-      const result = await adapter.verify({
-        provider: "stripe",
-        transactionId: "pi_invalid",
-      });
+      const result = await adapter.verify(
+        {
+          provider: "stripe",
+          transactionId: "pi_invalid",
+        },
+        "txn_verify456",
+      );
 
       expect(result.success).toBe(false);
       expect(result.status).toBe("failed");

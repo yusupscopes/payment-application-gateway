@@ -22,6 +22,14 @@ export class ProviderRegistry {
     return provider;
   }
 
+  hasProvider(name: string): boolean {
+    const validProviders: ProviderName[] = ["stripe", "midtrans", "xendit"];
+    if (!validProviders.includes(name as ProviderName)) {
+      return false;
+    }
+    return this.providers.has(name as ProviderName);
+  }
+
   getRegisteredProviders(): ProviderName[] {
     return Array.from(this.providers.keys());
   }
