@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { ProviderRegistry } from "../core/provider-registry.js";
+import type { ProviderName } from "../types/payment.js";
 
 export function createWebhookRoutes(registry: ProviderRegistry) {
   const app = new Hono();
@@ -19,7 +20,8 @@ export function createWebhookRoutes(registry: ProviderRegistry) {
       );
     }
 
-    const provider = registry.resolve(providerName);
+    const validatedProviderName = providerName as ProviderName;
+    const provider = registry.resolve(validatedProviderName);
 
     if (!provider.verifyWebhook) {
       return c.json(
@@ -57,7 +59,7 @@ export function createWebhookRoutes(registry: ProviderRegistry) {
     }
 
     const result = await provider.verifyWebhook({
-      provider: providerName,
+      provider: validatedProviderName,
       signature,
       body,
     });

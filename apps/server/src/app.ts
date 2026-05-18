@@ -18,7 +18,9 @@ import { createRateLimiter } from "./middleware/rate-limiter.js";
 import { createPaymentRoutes } from "./routes/payments.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
 
-export function createApp(options: { database?: Database } = {}) {
+export function createApp(
+  options: { database?: Database; registry?: ProviderRegistry } = {},
+) {
   const app = new Hono();
 
   app.use(logger());
@@ -30,25 +32,27 @@ export function createApp(options: { database?: Database } = {}) {
     }),
   );
 
-  app.use(errorHandler);
+  app.onError(errorHandler);
 
   // Core infrastructure
   const db = options.database ?? createDb();
-  const registry = new ProviderRegistry();
+  const registry = options.registry ?? new ProviderRegistry();
   const retryManager = new RetryManager();
   const auditLogger = new AuditLogger(db);
 
-  // Register adapters
-  registry.register(
-    new StripeAdapter({
-      secretKey: env.STRIPE_SECRET_KEY,
-      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-    }),
-  );
-  registry.register(
-    new MidtransAdapter({ serverKey: env.MIDTRANS_SERVER_KEY }),
-  );
-  registry.register(new XenditAdapter({ secretKey: env.XENDIT_SECRET_KEY }));
+  // Register adapters only if registry was not provided
+  if (!options.registry) {
+    registry.register(
+      new StripeAdapter({
+        secretKey: env.STRIPE_SECRET_KEY,
+        webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+      }),
+    );
+    registry.register(
+      new MidtransAdapter({ serverKey: env.MIDTRANS_SERVER_KEY }),
+    );
+    registry.register(new XenditAdapter({ secretKey: env.XENDIT_SECRET_KEY }));
+  }
 
   // Gateway orchestrator
   const gateway = new PaymentGateway(registry, retryManager, auditLogger);
