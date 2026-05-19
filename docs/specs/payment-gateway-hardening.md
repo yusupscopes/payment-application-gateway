@@ -262,19 +262,19 @@ export class RetryManager {
 - [x] All existing tests pass; new tests cover jitter, circuit breaker, and rate limiting
 
 ### Phase 2: Core Refactoring
-- [ ] `PaymentGateway` uses single `executeOperation()` helper instead of duplicated logic in `charge/refund/verify`
-- [ ] Adapters no longer generate their own transaction IDs; gateway ID is passed through
-- [ ] Audit log is written exactly once per transaction, after final result (not inside retry loop)
-- [ ] Webhook route queries registry for valid provider names instead of hardcoding
-- [ ] Route test coverage reaches ≥ 85%
+- [x] `PaymentGateway` uses single `executeOperation()` helper instead of duplicated logic in `charge/refund/verify`
+- [x] Adapters no longer generate their own transaction IDs; gateway ID is passed through
+- [x] Audit log is written exactly once per transaction, after final result (not inside retry loop)
+- [x] Webhook route queries registry for valid provider names instead of hardcoding
+- [x] Route test coverage reaches ≥ 85%
 
 ### Phase 3: Observability & Async Webhooks
-- [ ] `GET /health` returns 200 with per-provider connectivity status
-- [ ] Correlation IDs are generated per request and propagated to adapters + audit logs
-- [ ] Prometheus metrics endpoint (`/metrics`) exposes operation latency, retry count, error rate
-- [ ] Webhooks are accepted synchronously but processed asynchronously via BullMQ queue
-- [ ] Queue worker retries failed webhook processing with exponential backoff
-- [ ] Redis is required for replicated deployments; graceful degradation when Redis is unavailable
+- [x] `GET /health` returns 200 with per-provider connectivity status
+- [x] Correlation IDs are generated per request and propagated to adapters + audit logs
+- [x] Prometheus metrics endpoint (`/metrics`) exposes operation latency, retry count, error rate
+- [x] Webhooks are accepted synchronously but processed asynchronously via BullMQ queue
+- [x] Queue worker retries failed webhook processing with exponential backoff
+- [x] Redis is required for replicated deployments; graceful degradation when Redis is unavailable
 
 ---
 

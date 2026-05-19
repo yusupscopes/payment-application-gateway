@@ -21,6 +21,7 @@ export const transactions = pgTable("transactions", {
   errorCode: varchar("error_code", { length: 64 }),
   errorMessage: text("error_message"),
   retryable: boolean("retryable"),
+  correlationId: varchar("correlation_id", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

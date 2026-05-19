@@ -101,6 +101,12 @@ export interface WebhookResult {
   error?: NormalizedError;
 }
 
+export interface HealthCheckResult {
+  healthy: boolean;
+  latencyMs?: number;
+  message?: string;
+}
+
 export interface IPaymentProvider {
   readonly name: ProviderName;
 
@@ -108,4 +114,5 @@ export interface IPaymentProvider {
   refund(payload: RefundPayload, transactionId: string): Promise<RefundResult>;
   verify(payload: VerifyPayload, transactionId: string): Promise<VerifyResult>;
   verifyWebhook?(payload: WebhookPayload): Promise<WebhookResult>;
+  healthCheck?(): Promise<HealthCheckResult>;
 }

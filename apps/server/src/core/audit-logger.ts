@@ -6,6 +6,7 @@ import type {
   ProviderName,
   TransactionStatus,
 } from "../types/payment.js";
+import { getCorrelationIdFromContext } from "./request-context.js";
 
 export interface AuditLogPayload {
   transactionId?: string;
@@ -24,6 +25,7 @@ export class AuditLogger {
 
   async log(payload: AuditLogPayload): Promise<string> {
     const transactionId = payload.transactionId ?? this.generateTransactionId();
+    const correlationId = getCorrelationIdFromContext();
 
     await this.db.insert(transactions).values({
       id: transactionId,
@@ -37,6 +39,7 @@ export class AuditLogger {
       errorCode: payload.error?.code ?? null,
       errorMessage: payload.error?.message ?? null,
       retryable: payload.error?.retryable ?? null,
+      correlationId: correlationId ?? null,
     });
 
     return transactionId;

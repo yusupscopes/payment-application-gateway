@@ -11,6 +11,7 @@ import type {
   VerifyResult,
 } from "../types/payment.js";
 import type { AuditLogger } from "./audit-logger.js";
+import { recordError, recordOperation, recordRetry } from "./metrics.js";
 import type { ProviderRegistry } from "./provider-registry.js";
 import type { RetryManager } from "./retry-manager.js";
 
@@ -77,6 +78,7 @@ export class PaymentGateway {
   ): Promise<OperationResult> {
     const provider = this.registry.resolve(providerName);
     const transactionId = this.generateTransactionId();
+    const startTime = Date.now();
 
     const result = await this.retryManager.execute(
       async () => {
@@ -95,7 +97,18 @@ export class PaymentGateway {
         }
         return false;
       },
+      (_attempt) => {
+        recordRetry(providerName, operation);
+      },
     );
+
+    const durationMs = Date.now() - startTime;
+    const status = result.success ? "success" : "failure";
+    recordOperation(providerName, operation, status, durationMs);
+
+    if (!result.success && result.error) {
+      recordError(providerName, operation, result.error.code);
+    }
 
     // Audit log is written exactly once per transaction, after the final result
     await this.auditLogger.log({

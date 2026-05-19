@@ -10,6 +10,7 @@ export class RetryManager {
   async execute<T>(
     fn: () => Promise<T>,
     isRetryable: (error: unknown) => boolean,
+    onRetry?: (attempt: number, error: unknown) => void,
   ): Promise<T> {
     let lastError: unknown;
 
@@ -25,6 +26,8 @@ export class RetryManager {
         if (!canRetry || isLastAttempt) {
           throw error;
         }
+
+        onRetry?.(attempt, error);
 
         const delayMs = this.calculateBackoff(attempt);
         await this.sleep(delayMs);

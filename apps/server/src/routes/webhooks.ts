@@ -1,8 +1,13 @@
 import { Hono } from "hono";
 import type { ProviderRegistry } from "../core/provider-registry.js";
+import { getCorrelationId } from "../middleware/correlation-id.js";
+import type { WebhookQueue } from "../queue/webhook-queue.js";
 import type { ProviderName } from "../types/payment.js";
 
-export function createWebhookRoutes(registry: ProviderRegistry) {
+export function createWebhookRoutes(
+  registry: ProviderRegistry,
+  queue?: WebhookQueue,
+) {
   const app = new Hono();
 
   app.post("/:provider", async (c) => {
@@ -73,6 +78,28 @@ export function createWebhookRoutes(registry: ProviderRegistry) {
           },
         },
         401,
+      );
+    }
+
+    // If queue is available, enqueue for async processing
+    if (queue?.isAvailable) {
+      const jobId = await queue.add({
+        provider: validatedProviderName,
+        signature,
+        body,
+        correlationId: getCorrelationId(c),
+      });
+
+      return c.json(
+        {
+          success: true,
+          event: result.event,
+          transactionId: result.transactionId,
+          providerRef: result.providerRef,
+          queued: true,
+          jobId,
+        },
+        202,
       );
     }
 

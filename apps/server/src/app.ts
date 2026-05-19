@@ -13,8 +13,13 @@ import { PaymentGateway } from "./core/payment-gateway.js";
 import { ProviderRegistry } from "./core/provider-registry.js";
 import { RetryManager } from "./core/retry-manager.js";
 import { createApiKeyAuth, parseApiKeys } from "./middleware/api-key-auth.js";
+import { correlationId } from "./middleware/correlation-id.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { createRateLimiter } from "./middleware/rate-limiter.js";
+import { WebhookQueue } from "./queue/webhook-queue.js";
+import { WebhookWorker } from "./queue/webhook-worker.js";
+import { createHealthRoutes } from "./routes/health.js";
+import { createMetricsRoutes } from "./routes/metrics.js";
 import { createPaymentRoutes } from "./routes/payments.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
 
@@ -33,6 +38,9 @@ export function createApp(
   );
 
   app.onError(errorHandler);
+
+  // Correlation ID for observability
+  app.use(correlationId());
 
   // Core infrastructure
   const db = options.database ?? createDb();
@@ -91,7 +99,31 @@ export function createApp(
   paymentRoutes.route("/", paymentHandlers);
 
   app.route("/v1/payments", paymentRoutes);
-  app.route("/v1/webhooks", createWebhookRoutes(registry));
+
+  // Health endpoint
+  app.route("/health", createHealthRoutes(registry));
+
+  // Metrics endpoint
+  app.route("/metrics", createMetricsRoutes());
+
+  // Webhook queue with graceful degradation
+  let webhookQueue: WebhookQueue | undefined;
+
+  if (env.NODE_ENV !== "test") {
+    try {
+      const redisClient = createRedisClient(env.REDIS_URL);
+      webhookQueue = new WebhookQueue(redisClient);
+      // Worker is created for side effects (starts processing jobs)
+      new WebhookWorker(redisClient, registry);
+    } catch (error) {
+      console.warn(
+        "[Payment Gateway] Redis webhook queue unavailable:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  app.route("/v1/webhooks", createWebhookRoutes(registry, webhookQueue));
 
   app.get("/", (c) => {
     return c.text("OK");

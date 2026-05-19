@@ -1,12 +1,9 @@
 import { createApp } from "../../src/app.js";
 import { ProviderRegistry } from "../../src/core/provider-registry.js";
 import type {
-  ChargePayload,
   IPaymentProvider,
   PaymentResult,
-  RefundPayload,
   RefundResult,
-  VerifyPayload,
   VerifyResult,
 } from "../../src/types/payment.js";
 
