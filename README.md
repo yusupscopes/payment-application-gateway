@@ -20,14 +20,17 @@
   <a href="https://orm.drizzle.team/">
     <img src="https://img.shields.io/badge/Drizzle-ORM-000?style=flat-square" alt="Drizzle ORM">
   </a>
+  <a href="https://redis.io/">
+    <img src="https://img.shields.io/badge/Redis-7+-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis">
+  </a>
 </p>
 
 <p align="center">
   <a href="./LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT">
   </a>
-  <img src="https://img.shields.io/badge/tests-63%20passing-brightgreen?style=flat-square" alt="Tests">
-  <img src="https://img.shields.io/badge/coverage-84%25-brightgreen?style=flat-square" alt="Coverage">
+  <img src="https://img.shields.io/badge/tests-138%20passing-brightgreen?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=flat-square" alt="Coverage">
 </p>
 
 ---
@@ -47,6 +50,8 @@ A **centralized Payment Gateway** that abstracts multiple payment providers behi
 | Providers unified | 3 (Stripe, Midtrans, Xendit) |
 | API surface for all operations | 1 |
 | Operations supported | `charge` · `refund` · `verify` |
+| Observability | Correlation IDs, Prometheus metrics, health checks |
+| Async webhooks | BullMQ queue with exponential backoff |
 | Provider logic in consumers | 0 |
 | Time to add a new provider | ~1 day |
 
@@ -83,24 +88,31 @@ A **centralized Payment Gateway** that abstracts multiple payment providers behi
 Billing Service  ─────┐
 Order Service    ─────┤──► POST /v1/payments/charge
 Subscription Svc ─────┘    POST /v1/payments/refund
-                            POST /v1/payments/verify
-                                     │
-                           ┌──────────▼──────────┐
-                           │    Gateway Core      │
-                           │  ┌─────────────────┐ │
-                           │  │ Provider Router │ │  ← selects adapter
-                           │  │ Retry Manager   │ │  ← 3 attempts, exp. backoff
-                           │  │ Error Normalizer│ │  ← unified error shape
-                           │  │ Audit Logger    │ │  ← every tx logged
-                           │  └─────────────────┘ │
-                           └──────────┬────────────┘
+                           POST /v1/payments/verify
+                           GET  /health  ← provider connectivity
+                           GET  /metrics ← Prometheus metrics
                                       │
-               ┌─────────────────────┼─────────────────────┐
-               ▼                     ▼                     ▼
-      StripeAdapter         MidtransAdapter         XenditAdapter
-   (implements IPaymentProvider)
-               │                     │                     │
-         Stripe API           Midtrans API           Xendit API
+                            ┌──────────▼──────────┐
+                            │    Gateway Core      │
+                            │  ┌─────────────────┐ │
+                            │  │ Provider Router │ │  ← selects adapter
+                            │  │ Retry Manager   │ │  ← 3 attempts + jitter
+                            │  │ Circuit Breaker │ │  ← opens after 5 failures
+                            │  │ Error Normalizer│ │  ← unified error shape
+                            │  │ Audit Logger    │ │  ← every tx logged
+                            │  │ Metrics         │ │  ← latency, errors, retries
+                            │  └─────────────────┘ │
+                            └──────────┬────────────┘
+                                       │
+                ┌─────────────────────┼─────────────────────┐
+                ▼                     ▼                     ▼
+       StripeAdapter         MidtransAdapter         XenditAdapter
+    (implements IPaymentProvider)
+                │                     │                     │
+          Stripe API           Midtrans API           Xendit API
+
+Async Webhook Pipeline (BullMQ + Redis)
+  POST /v1/webhooks/:provider → verify → enqueue → worker processes
 ```
 
 ### Core Design Principles
@@ -109,6 +121,8 @@ Subscription Svc ─────┘    POST /v1/payments/refund
 - **Dependency Inversion** — Core references `IPaymentProvider`, never concrete adapters.
 - **Single Responsibility** — Each adapter knows only its provider's quirks.
 - **Encapsulation** — Provider auth, webhooks, and error codes are invisible to consumers.
+- **Observability** — Every request gets a correlation ID. Every operation emits Prometheus metrics.
+- **Resilience** — Circuit breaker prevents cascade failures. Jittered backoff avoids thundering herd.
 
 ---
 
@@ -122,6 +136,8 @@ Subscription Svc ─────┘    POST /v1/payments/refund
 | Validation | Zod |
 | Database | PostgreSQL 16+ |
 | ORM | Drizzle ORM |
+| Queue | BullMQ + Redis |
+| Metrics | Prometheus (prom-client) |
 | Testing | Jest + ts-jest |
 | Monorepo | pnpm workspaces + Turborepo |
 | Linting | Biome |
@@ -142,6 +158,7 @@ Subscription Svc ─────┘    POST /v1/payments/refund
 - Node.js 22+
 - pnpm 10+
 - PostgreSQL 16+ (or Docker)
+- Redis 7+ (or Docker)
 
 ### 1. Clone & Install
 
@@ -164,23 +181,32 @@ Edit `apps/server/.env`:
 DATABASE_URL=postgresql://postgres:password@localhost:5432/payment_gateway
 DATABASE_URL_TEST=postgresql://postgres:password@localhost:5432/payment_gateway_test
 
+# Redis (required for rate limiting, queue, and replicated deployments)
+REDIS_URL=redis://localhost:6379
+
 # Provider credentials
 STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 MIDTRANS_SERVER_KEY=SB-Mid-server-...
 XENDIT_SECRET_KEY=xnd_test_...
+
+# API Key authentication (comma-separated)
+API_KEYS=api-key-1,api-key-2
 
 # Server
 CORS_ORIGIN=http://localhost:3001
 NODE_ENV=development
 ```
 
-### 3. Start Database
+### 3. Start Infrastructure
 
 ```bash
-# Using Docker
-pnpm db:start
+# Using Docker Compose (PostgreSQL + Redis)
+pnpm docker:up
 
-# Or use your existing PostgreSQL instance
+# Or start services individually
+pnpm db:start
+pnpm redis:start
 ```
 
 ### 4. Push Schema
@@ -274,6 +300,24 @@ Providers accept webhooks at:
 - `/v1/webhooks/midtrans` — verifies notification signature
 - `/v1/webhooks/xendit` — verifies `x-callback-token` header
 
+**Async Processing:** When Redis is available, webhooks are verified synchronously and then enqueued for async processing via BullMQ (returns `202 Accepted` with `queued: true`). When Redis is unavailable, they fall back to synchronous processing (`200 OK`).
+
+### Health
+
+```bash
+GET /health
+```
+
+Returns per-provider connectivity status. `200` if all providers are healthy, `503` if any are degraded.
+
+### Metrics
+
+```bash
+GET /metrics
+```
+
+Prometheus exposition endpoint with operation latency, error rate, and retry counters.
+
 ---
 
 ## Provider Configuration
@@ -297,6 +341,14 @@ registry.register(new XenditAdapter({ secretKey: env.XENDIT_SECRET_KEY }));
 That's it. Zero changes to routes, core, or consumers.
 
 ---
+
+## Security
+
+- **API Key Authentication** — All payment endpoints require `x-api-key` header against a configured allowlist
+- **Per-Key Rate Limiting** — Redis-backed rate limiting restricts each API key to 100 requests/minute
+- **Webhook Signature Verification** — Stripe (HMAC-SHA256), Midtrans (SHA512), and Xendit (callback token) signatures are verified before accepting events
+- **Circuit Breaker** — Prevents cascade failures by opening after repeated provider errors
+- **Audit Logging** — Every transaction is recorded in PostgreSQL with correlation IDs for traceability
 
 ## Error Handling
 
@@ -323,6 +375,7 @@ All errors are normalized to a unified shape:
 | `GATEWAY_ERROR` | Provider API error | Yes |
 | `INVALID_REQUEST` | Bad request data | No |
 | `UNAUTHORIZED` | Authentication failed | No |
+| `NOT_FOUND` | Provider not registered | No |
 
 ---
 
@@ -346,16 +399,19 @@ pnpm test -- --testPathPatterns="stripe-adapter"
 
 - **Unit tests** — Colocated with source (`*.test.ts`)
 - **Integration tests** — `tests/integration/`
+- **Unit tests** — `tests/unit/`
 - **Contract tests** — Adapter interface verification
 
 ### Coverage (as of latest run)
 
 | Suite | Coverage |
 |-------|----------|
-| Overall | 84% |
-| Core (registry, retry, audit) | 87% |
-| Adapters | 78-94% |
-| Routes | 70% |
+| Overall | 92% |
+| Core (registry, retry, audit, circuit breaker, metrics) | 99% |
+| Adapters | 77-94% |
+| Routes | 99% |
+| Middleware | 85% |
+| Queue | 87% |
 
 ---
 
@@ -372,22 +428,36 @@ payment-application-gateway/
 │       │   │   └── xendit/
 │       │   ├── core/              # Gateway core
 │       │   │   ├── provider-registry.ts
+│       │   │   ├── payment-gateway.ts
 │       │   │   ├── retry-manager.ts
+│       │   │   ├── circuit-breaker.ts
 │       │   │   ├── audit-logger.ts
-│       │   │   └── payment-gateway.ts
+│       │   │   ├── metrics.ts
+│       │   │   └── request-context.ts
 │       │   ├── routes/            # API routes
 │       │   │   ├── payments.ts
-│       │   │   └── webhooks.ts
-│       │   ├── middleware/        # Error handler
+│       │   │   ├── webhooks.ts
+│       │   │   ├── health.ts
+│       │   │   └── metrics.ts
+│       │   ├── middleware/        # Middleware
+│       │   │   ├── error-handler.ts
+│       │   │   ├── api-key-auth.ts
+│       │   │   ├── rate-limiter.ts
+│       │   │   └── correlation-id.ts
+│       │   ├── queue/             # BullMQ queue + worker
+│       │   │   ├── webhook-queue.ts
+│       │   │   └── webhook-worker.ts
 │       │   ├── types/             # Shared types
 │       │   ├── app.ts             # App factory
 │       │   └── index.ts           # Server bootstrap
 │       └── tests/
 │           ├── __mocks__/         # Test mocks
-│           └── integration/       # Integration tests
+│           ├── integration/       # Integration tests
+│           └── unit/              # Unit tests
 ├── packages/
 │   ├── db/                        # Database schema & client
 │   ├── env/                       # Environment validation
+│   ├── redis/                     # Redis client
 │   └── config/                    # Shared TS config
 ├── docs/
 │   ├── use-case.md               # Case study
@@ -402,7 +472,9 @@ payment-application-gateway/
 ```bash
 # Development
 pnpm dev:server          # Start server in watch mode
+pnpm docker:up           # Start PostgreSQL + Redis via Docker Compose
 pnpm db:start            # Start PostgreSQL via Docker
+pnpm redis:start         # Start Redis via Docker
 pnpm db:push             # Push schema to database
 pnpm db:studio           # Open Drizzle Studio
 
@@ -422,31 +494,46 @@ pnpm build               # Build all packages and apps
 
 ### 1. Custom Retry Manager (not `p-retry`)
 
-The retry logic is domain-specific: **retryable vs non-retryable is a business decision**, not infrastructure. Adapters classify errors. The retry manager just executes.
+The retry logic is domain-specific: **retryable vs non-retryable is a business decision**, not infrastructure. Adapters classify errors. The retry manager just executes with jittered exponential backoff.
 
-### 2. Idempotency in Gateway Core
+### 2. Circuit Breaker
+
+Provider failures are isolated. After 5 failures in 60 seconds, the circuit opens for 30 seconds, returning fast failures instead of slow timeouts.
+
+### 3. Idempotency in Gateway Core
 
 Callers don't pass idempotency keys. The gateway generates `txn_` prefixed IDs automatically. Prevents duplicate charges under retry.
 
-### 3. Raw Response Storage
+### 4. Raw Response Storage
 
 Every transaction stores the **raw provider response** alongside the normalized result. When providers change schemas, historical data is preserved.
 
-### 4. Runtime Provider Resolution
+### 5. Runtime Provider Resolution
 
 The `ProviderRegistry` uses a `Map<ProviderName, IPaymentProvider>`. No compile-time imports of adapter classes in the gateway core.
+
+### 6. AsyncLocalStorage for Correlation IDs
+
+Instead of passing a Hono `Context` through every function signature, we use Node.js `AsyncLocalStorage` to propagate correlation IDs into core logic, adapters, and background workers transparently.
+
+### 7. Graceful Degradation
+
+Redis is required for full functionality (rate limiting, async webhooks), but the gateway starts and serves requests without it. Missing features log warnings rather than crashing.
 
 ---
 
 ## Roadmap
 
-- [ ] Add Docker Compose for one-command setup
+- [x] Add Docker Compose for one-command setup
+- [x] Implement webhook event queue (Redis/BullMQ)
+- [x] Add health check endpoint with provider status
+- [x] Add metrics and monitoring (Prometheus)
+- [x] Implement API key authentication and rate limiting (Redis)
+- [x] Add correlation ID propagation for observability
 - [ ] Add OpenAPI/Swagger documentation
-- [ ] Implement webhook event queue (Redis/Bull)
-- [ ] Add health check endpoint with provider status
 - [ ] Support for more providers (PayPal, Braintree, etc.)
-- [ ] Add metrics and monitoring (Prometheus)
 - [ ] Implement idempotency key caching (Redis)
+- [ ] Add Bull Dashboard for queue monitoring
 
 ---
 
