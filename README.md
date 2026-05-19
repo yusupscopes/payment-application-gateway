@@ -524,15 +524,42 @@ Redis is required for full functionality (rate limiting, async webhooks), but th
 
 ## Roadmap
 
+### Completed
+
 - [x] Add Docker Compose for one-command setup
 - [x] Implement webhook event queue (Redis/BullMQ)
 - [x] Add health check endpoint with provider status
 - [x] Add metrics and monitoring (Prometheus)
 - [x] Implement API key authentication and rate limiting (Redis)
 - [x] Add correlation ID propagation for observability
+- [x] Circuit breaker for provider resilience
+- [x] Jittered exponential backoff in retry manager
+
+### Next Up
+
+**Operational Readiness (do these first):**
+- [ ] Graceful shutdown (`SIGTERM`/`SIGINT`) — close workers, flush logs, disconnect Redis/DB
+- [ ] Structured JSON logging — replace `console.log` with correlation-aware JSON logger
+- [ ] Request/response logging middleware — log every HTTP request with timing + status
+- [ ] Webhook event deduplication — store processed event IDs in Redis (with TTL)
+- [ ] Request body size limits — prevent DoS via enormous webhook payloads
+
+**API Completeness:**
 - [ ] Add OpenAPI/Swagger documentation
-- [ ] Support for more providers (PayPal, Braintree, etc.)
+- [ ] `GET /v1/payments/:transactionId` — query transaction status by ID
+- [ ] Database migrations — replace `db:push` with versioned Drizzle migrations
+
+**Security & Reliability:**
+- [ ] Webhook IP allowlisting — restrict to known provider IP ranges
+- [ ] Admin/ops endpoints (`/admin/queue-status`, retry failed jobs, drain queue)
 - [ ] Implement idempotency key caching (Redis)
+
+**Strategic:**
+- [ ] Support for more providers (PayPal, Braintree, etc.)
+- [ ] Transaction reconciliation job — periodic worker comparing gateway vs provider state
+- [ ] Load testing / performance benchmarks — documented in CI
+- [ ] Multi-environment deployment config — K8s manifests or Terraform
+- [ ] Redis Sentinel / Cluster support — failover for replicated deployments
 - [ ] Add Bull Dashboard for queue monitoring
 
 ---
