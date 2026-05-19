@@ -554,6 +554,16 @@ Redis is required for full functionality (rate limiting, async webhooks), but th
 - [ ] Admin/ops endpoints (`/admin/queue-status`, retry failed jobs, drain queue)
 - [ ] Implement idempotency key caching (Redis)
 
+**CI/CD & Deployment:**
+- [ ] GitHub Actions CI pipeline — type check, lint, test, build on every PR
+- [ ] Staging deployment pipeline — auto-deploy `main` branch to staging environment
+- [ ] Production deployment pipeline — tagged releases with rollback capability
+- [ ] Docker image build and push to registry (GHCR or ECR)
+- [ ] Database migration verification in CI — validate migrations run cleanly
+- [ ] Smoke tests after deployment — verify `/health` and sample charge/refund in staging
+- [ ] Secrets management — migrate from `.env` files to secrets manager (AWS Secrets Manager, HashiCorp Vault)
+- [ ] Infrastructure as Code — Terraform or Pulumi for staging and production environments
+
 **Strategic:**
 - [ ] Support for more providers (PayPal, Braintree, etc.)
 - [ ] Transaction reconciliation job — periodic worker comparing gateway vs provider state
