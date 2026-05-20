@@ -3,10 +3,11 @@ import { createApp } from "../../src/app.js";
 const TEST_API_KEY = "test-api-key-1";
 
 describe("Integration: Error Handling", () => {
-  let app: ReturnType<typeof createApp>;
+  let app: ReturnType<typeof createApp>["app"];
 
   beforeEach(() => {
-    app = createApp();
+    const result = createApp();
+    app = result.app;
   });
 
   it("should return 400 for validation errors", async () => {

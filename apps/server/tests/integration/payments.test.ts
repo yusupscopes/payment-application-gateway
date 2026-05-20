@@ -18,10 +18,11 @@ class MockPaymentProvider implements IPaymentProvider {
 }
 
 describe("Integration: Payment Routes", () => {
-  let app: ReturnType<typeof createApp>;
+  let app: ReturnType<typeof createApp>["app"];
 
   beforeEach(() => {
-    app = createApp();
+    const result = createApp();
+    app = result.app;
   });
 
   describe("API Key Authentication", () => {
@@ -137,13 +138,14 @@ describe("Integration: Payment Routes", () => {
 
   describe("End-to-end with mock provider", () => {
     let mockProvider: MockPaymentProvider;
-    let mockApp: ReturnType<typeof createApp>;
+    let mockApp: ReturnType<typeof createApp>["app"];
 
     beforeEach(() => {
       mockProvider = new MockPaymentProvider();
       const registry = new ProviderRegistry();
       registry.register(mockProvider);
-      mockApp = createApp({ registry });
+      const result = createApp({ registry });
+      mockApp = result.app;
     });
 
     it("should return 200 on successful charge", async () => {

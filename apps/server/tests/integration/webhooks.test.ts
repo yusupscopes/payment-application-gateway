@@ -1,10 +1,11 @@
 import { createApp } from "../../src/app.js";
 
 describe("Integration: Webhook Routes", () => {
-  let app: ReturnType<typeof createApp>;
+  let app: ReturnType<typeof createApp>["app"];
 
   beforeEach(() => {
-    app = createApp();
+    const result = createApp();
+    app = result.app;
   });
 
   it("should return 400 for unknown provider", async () => {
