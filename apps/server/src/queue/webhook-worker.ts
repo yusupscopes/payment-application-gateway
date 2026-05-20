@@ -1,5 +1,6 @@
 import { Worker } from "bullmq";
 import type Redis from "ioredis";
+import type { Logger } from "pino";
 import type { ProviderRegistry } from "../core/provider-registry.js";
 import { runWithRequestContext } from "../core/request-context.js";
 import type { ProviderName } from "../types/payment.js";
@@ -8,7 +9,11 @@ import type { WebhookJobData } from "./webhook-queue.js";
 export class WebhookWorker {
   private worker: Worker<WebhookJobData> | null = null;
 
-  constructor(redisClient: Redis | null, registry: ProviderRegistry) {
+  constructor(
+    redisClient: Redis | null,
+    registry: ProviderRegistry,
+    logger?: Logger,
+  ) {
     if (redisClient) {
       this.worker = new Worker<WebhookJobData>(
         "webhook-processing",
@@ -20,15 +25,20 @@ export class WebhookWorker {
       );
 
       this.worker.on("failed", (job, err) => {
-        console.error(
-          `[WebhookWorker] Job ${job?.id} failed for provider ${job?.data.provider}:`,
-          err.message,
+        logger?.error(
+          {
+            jobId: job?.id,
+            provider: job?.data.provider,
+            err: err.message,
+          },
+          "Webhook worker job failed",
         );
       });
 
       this.worker.on("completed", (job) => {
-        console.log(
-          `[WebhookWorker] Job ${job.id} completed for provider ${job.data.provider}`,
+        logger?.info(
+          { jobId: job.id, provider: job.data.provider },
+          "Webhook worker job completed",
         );
       });
     }
