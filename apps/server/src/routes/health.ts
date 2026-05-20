@@ -1,10 +1,24 @@
 import { Hono } from "hono";
 import type { ProviderRegistry } from "../core/provider-registry.js";
 
-export function createHealthRoutes(registry: ProviderRegistry) {
+export function createHealthRoutes(
+  registry: ProviderRegistry,
+  isShuttingDown?: () => boolean,
+) {
   const app = new Hono();
 
   app.get("/", async (c) => {
+    if (isShuttingDown?.()) {
+      return c.json(
+        {
+          status: "shutting_down",
+          timestamp: new Date().toISOString(),
+          providers: [],
+        },
+        503,
+      );
+    }
+
     const providers = registry.getRegisteredProviders();
     const checks = await Promise.all(
       providers.map(async (name) => {
